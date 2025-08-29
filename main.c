@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <string.h>
 
 #include <raylib.h>
 
@@ -100,7 +101,7 @@ void init(Block blocks[mapWidth][mapHeight], Color colors[powerRange], Block blo
 
 }
 
-void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint32_t* lowestBlockPower) {
+void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint32_t* lowestBlockPower, uint32_t* score) {
     for (int32_t i = mapWidth - 1; i > -1; i--) {
         for (int32_t j = mapHeight - 1; j > -1; j--) {
             if (blocks[i][j].isActive && j + 1 < mapHeight && !blocks[i][j + 1].isActive) {
@@ -122,16 +123,18 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
             else if (blocks[i][j].isActive && j + 1 < mapHeight && blocks[i][j + 1].isActive) {
                 if (blocks[i][j].value == blocks[i][j + 1].value) {
                     blocks[i][j + 1].value *= 2;
+                    *score += blocks[i][j].value;
                     if (blocks[i][j + 1].value == pow(2, highestPower + powersHigherThanHighestBlock)) {
-                        lowestBlockPower++;
+                        (*lowestBlockPower)++;
                     }
                     blocks[i][j] = (Block){0};
                 }
             }
             // Mergen with block left
-            else if (blocks[i][j].isActive && i - 1 > mapWidth && blocks[i - 1][j].isActive) {
+            else if (blocks[i][j].isActive && i >= 0 && blocks[i - 1][j].isActive) {
                 if (blocks[i][j].value == blocks[i - 1][j].value) {
-
+                    *score += blocks[i][j].value;
+                    
                     // See which block is falling
                     if (blocks[i][j].isFalling) {
                         blocks[i][j].value *= 2;
@@ -142,13 +145,15 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
                         blocks[i][j] = (Block){0};
                     }
                     if (blocks[i][j].value == pow(2, highestPower + powersHigherThanHighestBlock)) {
-                        lowestBlockPower++;
+                        (*lowestBlockPower)++;
                     }
                 }
             }
             // Mergen with block right
             else if (blocks[i][j].isActive && i + 1 < mapWidth && blocks[i + 1][j].isActive) {
                 if (blocks[i][j].value == blocks[i + 1][j].value) {
+                    *score += blocks[i][j].value;
+
                     // See which block is falling
                     if (blocks[i][j].isFalling) {
                         blocks[i][j].value *= 2;
@@ -159,7 +164,7 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
                         blocks[i][j] = (Block){0};
                     }
                     if (blocks[i][j].value == pow(2, highestPower + powersHigherThanHighestBlock)) {
-                        lowestBlockPower++;
+                        (*lowestBlockPower)++;
                     }
                 }
             }
@@ -187,7 +192,8 @@ void drawMap() {
 
 void drawBlock(Block* block) {
     DrawRectangle((block->posX + mapPosX) * GRIDSIZE, (block->posY + mapPosY) * GRIDSIZE, GRIDSIZE, GRIDSIZE, block->color);
-    const char* valueStr = TextFormat("%d", block->value);
+    char valueStr[100];
+    snprintf(valueStr, sizeof(valueStr), "%d", block->value);
     uint32_t fontSize = 25;
     int textWidth = 0;
     do {
@@ -196,13 +202,14 @@ void drawBlock(Block* block) {
     } while (textWidth > GRIDSIZE);
     fontSize++;
 
-    DrawText(TextFormat("%d", block->value), (block->posX + mapPosX) * GRIDSIZE + (float)GRIDSIZE / 2 - (float)textWidth / 2,
+    DrawText(valueStr, (block->posX + mapPosX) * GRIDSIZE + (float)GRIDSIZE / 2 - (float)textWidth / 2,
                         (block->posY + mapPosY) * GRIDSIZE + (float)GRIDSIZE / 2 - (float)fontSize / 2, fontSize, RAYWHITE);
 }
 
 void drawBlockPositionScale(Block* block, uint32_t posX, uint32_t posY, uint32_t scale) {
     DrawRectangle(posX * GRIDSIZE, posY * GRIDSIZE, GRIDSIZE * scale, GRIDSIZE * scale, block->color);
-    const char* valueStr = TextFormat("%d", block->value);
+    char valueStr[100];
+    snprintf(valueStr, sizeof(valueStr), "%d", block->value);
     uint32_t fontSize = 25;
     int textWidth = 0;
     do {
@@ -211,7 +218,7 @@ void drawBlockPositionScale(Block* block, uint32_t posX, uint32_t posY, uint32_t
     } while (textWidth > GRIDSIZE);
     fontSize++;
 
-    DrawText(TextFormat("%d", block->value), posX * GRIDSIZE + ((float)GRIDSIZE / 2) * scale - (float)textWidth / 2,
+    DrawText(valueStr, posX * GRIDSIZE + ((float)GRIDSIZE / 2) * scale - (float)textWidth / 2,
                         posY * GRIDSIZE + ((float)GRIDSIZE / 2) * scale - (float)fontSize / 2, fontSize, RAYWHITE);
 }
 
@@ -226,12 +233,20 @@ void drawBlocks(Block blocks[mapWidth][mapHeight]) {
     }
 }
 
-void drawUi(uint32_t highestBlock, Block blocksQueue[2], uint32_t queueIndex) {
-    DrawText(TextFormat("Highest Block: %d", highestBlock), 10, 10, 35, RAYWHITE);
+void drawUi(uint32_t highestBlock, Block blocksQueue[2], uint32_t queueIndex, uint32_t score) {
+    
+    char highestBlockText[100];
+    snprintf(highestBlockText, sizeof(highestBlockText), "Highest Block: %u", highestBlock);
+    DrawText(highestBlockText, 10, 10, 35, RAYWHITE);
 
     // Next Blocks display
     drawBlockPositionScale(&blocksQueue[queueIndex], 8, 13, 2);
     DrawText("Next Block: ", 6 * GRIDSIZE - 25, 14 * GRIDSIZE, 25, RAYWHITE);
+
+    // score
+    char scoreText[100];
+    snprintf(scoreText, sizeof(scoreText), "Score: %u", score);
+    DrawText(scoreText, 10, 60, 35, RAYWHITE);
 }
 
 int main() {
@@ -250,6 +265,8 @@ int main() {
     Color colors[powerRange];
     Block blocksQueue[2];
     uint32_t currentQueueIndex = 0;
+
+    uint32_t score = 0;
 
     init(blocks, colors, blocksQueue, lowestBlockPower);
 
@@ -296,14 +313,16 @@ int main() {
             }
         }
     
-        updateBlocks(blocks, lowestBlockPower + powerRange - 1, &lowestBlockPower);
+        updateBlocks(blocks, lowestBlockPower + powerRange - 1, &lowestBlockPower, &score);
 
         // Render
         BeginDrawing();
 
+        ClearBackground(BLACK);
+
         drawMap();
         drawBlocks(blocks);
-        drawUi(highestBlock, blocksQueue, currentQueueIndex);
+        drawUi(highestBlock, blocksQueue, currentQueueIndex, score);
             
         EndDrawing();
 
