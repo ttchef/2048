@@ -9,6 +9,7 @@
 
 #include <raylib.h>
 
+const uint32_t MAX_SOUNDS = 10;
 const uint32_t GRIDSIZE = 64; // Pixesl
 
 // Grids
@@ -58,7 +59,8 @@ void toggleIndex(uint32_t* index) {
     else *index = 0;
 }
 
-void init(Block blocks[mapWidth][mapHeight], Color colors[powerRange], Block blocksQueue[2], uint32_t lowestBlockPower) {
+void init(Block blocks[mapWidth][mapHeight], Color colors[powerRange], Block blocksQueue[2],
+          uint32_t lowestBlockPower, Texture2D* bgTexture, Texture2D* shadowTexture, Sound* soundEffects) {
     // Zero initen
     for (uint32_t i = 0; i < mapWidth; i++) {
         for (uint32_t j = 0; j < mapHeight; j++) {
@@ -99,10 +101,31 @@ void init(Block blocks[mapWidth][mapHeight], Color colors[powerRange], Block blo
         .isFalling = false,
     };
     blocksQueue[1] = block1;
+    
+    // Texutures
+    // Bg
+    Image bg = LoadImage("res/images/forest.png");
+    ImageColorBrightness(&bg, -5);
+    ImageBlurGaussian(&bg, 15);
+    *bgTexture = LoadTextureFromImage(bg);
+    UnloadImage(bg);
+
+    // Shadow Image generation 
+    Image shadow = GenImageColor((mapWidth + 2) * GRIDSIZE, (mapHeight + 2) * GRIDSIZE, BLANK);
+    Color blackTransparant = (Color){0, 0, 0, 200};
+    ImageDrawRectangle(&shadow, GRIDSIZE, GRIDSIZE, mapWidth * GRIDSIZE, mapHeight * GRIDSIZE, blackTransparant);
+    ImageBlurGaussian(&shadow, 10);
+    *shadowTexture = LoadTextureFromImage(shadow);
+    UnloadImage(shadow);
+
+    // Sounds
+    soundEffects[0] = LoadSound("res/sfx/boom.wav");
+    for (uint32_t i = 1; i < MAX_SOUNDS; i++) soundEffects[i] = LoadSoundAlias(soundEffects[0]);
 
 }
 
-void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint32_t* lowestBlockPower, uint32_t* score, bool* activeFalling) {
+void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint32_t* lowestBlockPower,
+                  uint32_t* score, bool* activeFalling, uint32_t currentId, Sound* soundEffects, uint32_t* currentSound) {
     for (int32_t i = mapWidth - 1; i > -1; i--) {
         for (int32_t j = mapHeight - 1; j > -1; j--) {
 
@@ -133,6 +156,23 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
                 // Bottom rank
                 if (j == mapHeight - 1) {
                     block->isFalling = false;
+                    if (block->id == currentId) *activeFalling = false;
+
+                }
+
+                // Collision Downwards
+                if (j + 1 < mapHeight && blocks[i][j + 1].isActive) {
+
+                }
+
+                // Collision Left
+                else if (i - 1 > -1 && blocks[i - 1][j].isActive) {
+
+                }
+
+                // Collision Right 
+                else if (i + 1 < mapWidth && blocks[i + 1][j].isActive) {
+   
                 }
 
             }
@@ -246,7 +286,6 @@ void drawBlockPositionScale(Block* block, uint32_t posX, uint32_t posY, uint32_t
 }
 
 
-
 void drawBlocks(Block blocks[mapWidth][mapHeight]) {
     for (uint32_t i = 0; i < mapWidth; i++) {
         for (uint32_t j = 0; j < mapHeight; j++) {
@@ -286,6 +325,7 @@ int main() {
 
     InitWindow(screenWidht * GRIDSIZE, screenHeight * GRIDSIZE, "Mef 2048");
     SetTargetFPS(60);
+    InitAudioDevice();
     
     Block blocks[mapWidth][mapHeight];
 
@@ -299,27 +339,30 @@ int main() {
 
     uint32_t score = 0;
     bool activeFalling = false;
+    uint32_t blockId = 0;
+    uint32_t currentId = 0;
 
-    // Bg
-    Image bg = LoadImage("../game-2048/res/images/forest.png");
-    ImageColorBrightness(&bg, -5);
-    ImageBlurGaussian(&bg, 15);
-    Texture2D texture = LoadTextureFromImage(bg);
-    UnloadImage(bg);
+    // Textures
+    Texture2D bgTexture;
+    Texture2D shadowTexture;
 
-    // Shadow Image generation 
-    Image shadow = GenImageColor((mapWidth + 2) * GRIDSIZE, (mapHeight + 2) * GRIDSIZE, BLANK);
-    Color blackTransparant = (Color){0, 0, 0, 200};
-    ImageDrawRectangle(&shadow, GRIDSIZE, GRIDSIZE, mapWidth * GRIDSIZE, mapHeight * GRIDSIZE, blackTransparant);
-    ImageBlurGaussian(&shadow, 10);
-    Texture2D shadowTexture = LoadTextureFromImage(shadow);
-    UnloadImage(shadow);
+    // Sounds
+    Sound soundEffects[MAX_SOUNDS];
+    uint32_t currentSound = 0;
 
-    init(blocks, colors, blocksQueue, lowestBlockPower);
+    init(blocks, colors, blocksQueue, lowestBlockPower, &bgTexture, &shadowTexture, soundEffects);
 
     while (!WindowShouldClose()) {
 
         // Input 
+        if (IsKeyPressed(KEY_ENTER)) {
+            PlaySound(soundEffects[currentSound]);
+            currentSound++;
+            if (currentSound >= MAX_SOUNDS) {
+                currentSound = 0;
+            }
+        }
+
         if (!activeFalling) {
             activeFalling = true;
   
@@ -330,6 +373,7 @@ int main() {
             blocksQueue[currentQueueIndex].posX = mapIndexX;
             blocksQueue[currentQueueIndex].posY = 0;
             blocksQueue[currentQueueIndex].isFalling = true;
+            currentId = blocksQueue[currentQueueIndex].id;
             blocks[mapIndexX][0] = blocksQueue[currentQueueIndex];
     
             // Generate next queue block
@@ -342,7 +386,7 @@ int main() {
                 .posX = 0.0f,
                 .posY = 0.0f,
                 .interpolation = 0.0f,
-                .id = random,
+                .id = blockId++,
                 .isFalling = false,
             };
             blocksQueue[currentQueueIndex] = block;
@@ -354,14 +398,15 @@ int main() {
             exit(-1);
         }
 
-        updateBlocks(blocks, lowestBlockPower + powerRange - 1, &lowestBlockPower, &score, &activeFalling);
+        updateBlocks(blocks, lowestBlockPower + powerRange - 1, &lowestBlockPower, &score,
+                     &activeFalling, currentId, soundEffects, &currentSound);
 
         // Render
         BeginDrawing();
 
         ClearBackground(BLACK);
 
-        DrawTexture(texture, 0, 0, WHITE);
+        DrawTexture(bgTexture, 0, 0, WHITE);
         DrawTexture(shadowTexture, (mapPosX) * GRIDSIZE - 35, (mapPosY) * GRIDSIZE - 35, WHITE);
         drawMap();
         drawBlocks(blocks);
@@ -370,6 +415,10 @@ int main() {
         EndDrawing();
 
     }
+
+    for (uint32_t i = 1; i < MAX_SOUNDS; i++) UnloadSoundAlias(soundEffects[i]);
+    UnloadSound(soundEffects[0]);
+    CloseAudioDevice();
 
     CloseWindow();
 
