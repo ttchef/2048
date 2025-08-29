@@ -200,8 +200,8 @@ void drawBlock(Block* block) {
                         (block->posY + mapPosY) * GRIDSIZE + (float)GRIDSIZE / 2 - (float)fontSize / 2, fontSize, RAYWHITE);
 }
 
-void drawBlockPosition(Block* block, uint32_t posX, uint32_t posY) {
-    DrawRectangle(posX * GRIDSIZE, posY * GRIDSIZE, GRIDSIZE, GRIDSIZE, block->color);
+void drawBlockPositionScale(Block* block, uint32_t posX, uint32_t posY, uint32_t scale) {
+    DrawRectangle(posX * GRIDSIZE, posY * GRIDSIZE, GRIDSIZE * scale, GRIDSIZE * scale, block->color);
     const char* valueStr = TextFormat("%d", block->value);
     uint32_t fontSize = 25;
     int textWidth = 0;
@@ -211,8 +211,8 @@ void drawBlockPosition(Block* block, uint32_t posX, uint32_t posY) {
     } while (textWidth > GRIDSIZE);
     fontSize++;
 
-    DrawText(TextFormat("%d", block->value), posX * GRIDSIZE + (float)GRIDSIZE / 2 - (float)textWidth / 2,
-                        posY * GRIDSIZE + (float)GRIDSIZE / 2 - (float)fontSize / 2, fontSize, RAYWHITE);
+    DrawText(TextFormat("%d", block->value), posX * GRIDSIZE + ((float)GRIDSIZE / 2) * scale - (float)textWidth / 2,
+                        posY * GRIDSIZE + ((float)GRIDSIZE / 2) * scale - (float)fontSize / 2, fontSize, RAYWHITE);
 }
 
 
@@ -230,7 +230,8 @@ void drawUi(uint32_t highestBlock, Block blocksQueue[2], uint32_t queueIndex) {
     DrawText(TextFormat("Highest Block: %d", highestBlock), 10, 10, 35, RAYWHITE);
 
     // Next Blocks display
-    drawBlockPosition(&blocksQueue[queueIndex], 11, 13);
+    drawBlockPositionScale(&blocksQueue[queueIndex], 8, 13, 2);
+    DrawText("Next Block: ", 6 * GRIDSIZE - 25, 14 * GRIDSIZE, 25, RAYWHITE);
 }
 
 int main() {
