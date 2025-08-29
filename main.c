@@ -1,9 +1,18 @@
 
 #include <stdio.h> 
 
+#include <raylib.h>
+
 int main() {
 
-    printf("Hello 2048!\n");
+    InitWindow(800, 600, "Mef 2048");
+
+    while (!WindowShouldClose()) {
+
+    }
+
+    CloseWindow();
 
     return 0;
 }
+

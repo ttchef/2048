@@ -1,7 +1,7 @@
 
 CC = gcc
 CFLAGS = -Wall -Werror
-LDFLAGS = 
+LDFLAGS = -lraylib -lm
 
 CFILES = $(wildcard *.c)
 OFILES = $(CFILES:.c=.o)
