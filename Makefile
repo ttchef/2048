@@ -19,4 +19,9 @@ $(TARGET): $(OFILES)
 run: $(TARGET)
 	./$(TARGET)
 
+cloc:
+	cloc . --exclude-dir=vendor,build,third_party
+
+clean:
+	rm -rf $(TARGET) $(OFILES)
 
