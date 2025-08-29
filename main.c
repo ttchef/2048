@@ -18,9 +18,10 @@ const uint32_t mapWidth = 6;
 const uint32_t mapHeight = 10;
 const uint32_t mapPosX = 3;
 const uint32_t mapPosY = 2;
-const float blockSpeed = 0.2f;
+const float blockSpeed = 0.05f;
 const uint32_t powerRange = 5;
 const uint32_t powersHigherThanHighestBlock = 3;
+const uint32_t timeTillNextBlock = 3; // In Seconds
 
 typedef struct {
     uint32_t value;
@@ -67,9 +68,9 @@ void init(Block blocks[mapWidth][mapHeight], Color colors[powerRange], Block blo
 
     // Default Color Array
     for (uint32_t i = 0; i < powerRange; i++) {
-        uint32_t r = rand() % 256;
-        uint32_t g = rand() % 256;
-        uint32_t b = rand() % 256;
+        uint32_t r = rand() % 100 + 55;
+        uint32_t g = rand() % 100 + 55;
+        uint32_t b = rand() % 100 + 55;
         colors[i] = (Color){r, g, b, 255};
     }
 
@@ -101,24 +102,43 @@ void init(Block blocks[mapWidth][mapHeight], Color colors[powerRange], Block blo
 
 }
 
-void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint32_t* lowestBlockPower, uint32_t* score) {
+void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint32_t* lowestBlockPower, uint32_t* score, bool* activeFalling) {
     for (int32_t i = mapWidth - 1; i > -1; i--) {
         for (int32_t j = mapHeight - 1; j > -1; j--) {
-            if (blocks[i][j].isActive && j + 1 < mapHeight && !blocks[i][j + 1].isActive) {
-                blocks[i][j].interpolation += blockSpeed;
 
-                Vector2 pos = lerp((Vector2U32){i, j}, (Vector2U32){i, j + 1}, blocks[i][j].interpolation);
-                blocks[i][j].posX = pos.x;
-                blocks[i][j].posY = pos.y;
+            Block* block = &blocks[i][j];
+            if (!block->isActive) continue;
 
-                if (blocks[i][j].interpolation >= 1.0f) {
-                    blocks[i][j].interpolation = 0.0f;
-                    blocks[i][j].posX = i;
-                    blocks[i][j].posY = j + 1;
-                    blocks[i][j + 1] = blocks[i][j];
-                    blocks[i][j] = (Block){0};
+            // Can Fall?
+            if (j + 1 < mapHeight && !blocks[i][j + 1].isActive) {
+                block->isFalling = true;
+                block->interpolation += blockSpeed;
+
+                Vector2 pos = lerp((Vector2U32){i, j}, (Vector2U32){i, j + 1}, block->interpolation);
+                block->posX = pos.x;
+                block->posY = pos.y;
+
+                if (block->interpolation >= 1.0f) {
+                    block->interpolation = 0.0f;
+                    block->posX = i;
+                    block->posY = j + 1;
+                    blocks[i][j + 1] = *block;
+                    *block = (Block){0};
                 }
-            }    
+
+            }
+
+            // Collision
+            else {
+                // Bottom rank
+                if (j == mapHeight - 1) {
+                    block->isFalling = false;
+                }
+
+            }
+
+
+            if (true) {}
             // Mergen with block down
             else if (blocks[i][j].isActive && j + 1 < mapHeight && blocks[i][j + 1].isActive) {
                 if (blocks[i][j].value == blocks[i][j + 1].value) {
@@ -129,6 +149,8 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
                     }
                     blocks[i][j] = (Block){0};
                 }
+                blocks[i][j].isFalling = false;
+                *activeFalling = false;
             }
             // Mergen with block left
             else if (blocks[i][j].isActive && i >= 0 && blocks[i - 1][j].isActive) {
@@ -168,8 +190,9 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
                     }
                 }
             }
-            else if (blocks[i][j].isActive) {
+            else if (blocks[i][j].isActive && j == mapHeight - 1) {
                 blocks[i][j].isFalling = false;
+                *activeFalling = false;
             }
         }
     }
@@ -249,6 +272,14 @@ void drawUi(uint32_t highestBlock, Block blocksQueue[2], uint32_t queueIndex, ui
     DrawText(scoreText, 10, 60, 35, RAYWHITE);
 }
 
+bool checkForLose(Block blocks[mapWidth][mapHeight]) {
+    for (uint32_t i = 0; i < mapWidth; i++) {
+        if (blocks[i][0].isActive && !blocks[i][0].isFalling) return true;
+    } 
+
+    return false;
+}
+
 int main() {
     
     srand(time(NULL));
@@ -267,59 +298,60 @@ int main() {
     uint32_t currentQueueIndex = 0;
 
     uint32_t score = 0;
+    bool activeFalling = false;
+
+    // Image
+    Image bg = LoadImage("../game-2048/res/images/forest.png");
+    Texture2D texture = LoadTextureFromImage(bg);
+    UnloadImage(bg);
 
     init(blocks, colors, blocksQueue, lowestBlockPower);
 
     while (!WindowShouldClose()) {
 
         // Input 
-        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            Vector2 mousePos = GetMousePosition();
-           
-            if (!(mousePos.x < mapPosX * GRIDSIZE || 
-                mousePos.x > (mapPosX + mapWidth) * GRIDSIZE || 
-                mousePos.y < mapPosY * GRIDSIZE || 
-                mousePos.y > (mapPosY + mapHeight) * GRIDSIZE)) {
-
-                Vector2 mapRelativeMousePos = {0};
-                mapRelativeMousePos.x = mousePos.x - mapPosX * GRIDSIZE;
-                mapRelativeMousePos.y = mousePos.y - mapPosY * GRIDSIZE;
-
-                uint32_t mapIndexX = mapRelativeMousePos.x / GRIDSIZE;
-                uint32_t mapIndexY = mapRelativeMousePos.y / GRIDSIZE;
-
-                // set pos of queue block
-                blocksQueue[currentQueueIndex].isActive = true;
-                blocksQueue[currentQueueIndex].posX = mapIndexX;
-                blocksQueue[currentQueueIndex].posY = mapIndexY;
-                blocksQueue[currentQueueIndex].isFalling = true;
-                blocks[mapIndexX][mapIndexY] = blocksQueue[currentQueueIndex];
+        if (!activeFalling) {
+            activeFalling = true;
+  
+            uint32_t mapIndexX = rand() % mapWidth;
+            
+            // set pos of queue block
+            blocksQueue[currentQueueIndex].isActive = true;
+            blocksQueue[currentQueueIndex].posX = mapIndexX;
+            blocksQueue[currentQueueIndex].posY = 0;
+            blocksQueue[currentQueueIndex].isFalling = true;
+            blocks[mapIndexX][0] = blocksQueue[currentQueueIndex];
     
-                // Generate next queue block
-                uint32_t random = rand() % powerRange;
+            // Generate next queue block
+            uint32_t random = rand() % powerRange;
 
-                Block block = {
-                    .value = pow(2, random + lowestBlockPower),
-                    .color = colors[random],
-                    .isActive = false,
-                    .posX = 0.0f,
-                    .posY = 0.0f,
-                    .interpolation = 0.0f,
-                    .id = random,
-                    .isFalling = false,
-                };
-                blocksQueue[currentQueueIndex] = block;
-                toggleIndex(&currentQueueIndex);
-            }
+            Block block = {
+                .value = pow(2, random + lowestBlockPower),
+                .color = colors[random],
+                .isActive = false,
+                .posX = 0.0f,
+                .posY = 0.0f,
+                .interpolation = 0.0f,
+                .id = random,
+                .isFalling = false,
+            };
+            blocksQueue[currentQueueIndex] = block;
+            toggleIndex(&currentQueueIndex);
+            
         }
     
-        updateBlocks(blocks, lowestBlockPower + powerRange - 1, &lowestBlockPower, &score);
+        if (checkForLose(blocks)) {
+            exit(-1);
+        }
+
+        updateBlocks(blocks, lowestBlockPower + powerRange - 1, &lowestBlockPower, &score, &activeFalling);
 
         // Render
         BeginDrawing();
 
         ClearBackground(BLACK);
 
+        DrawTexture(texture, 0, 0, WHITE);
         drawMap();
         drawBlocks(blocks);
         drawUi(highestBlock, blocksQueue, currentQueueIndex, score);
