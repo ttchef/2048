@@ -32,7 +32,8 @@ typedef struct {
     float posX;
     float posY;
     float interpolation; // percent to next coordiante
-    uint32_t id;
+    uint32_t id; // Unqiue for everyone
+    uint32_t randId; // One of the 5 stages
 } Block;
 
 typedef struct {
@@ -85,6 +86,7 @@ void init(Block blocks[mapWidth][mapHeight], Color colors[powerRange], Block blo
         .posY = 0.0f,
         .interpolation = 0.0f,
         .id = random,
+        .randId = random,
         .isFalling = false,
     };
     blocksQueue[0] = block;
@@ -98,6 +100,7 @@ void init(Block blocks[mapWidth][mapHeight], Color colors[powerRange], Block blo
         .posY = 0.0f,
         .interpolation = 0.0f,
         .id = random,
+        .randId = random,
         .isFalling = false,
     };
     blocksQueue[1] = block1;
@@ -125,7 +128,8 @@ void init(Block blocks[mapWidth][mapHeight], Color colors[powerRange], Block blo
 }
 
 void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint32_t* lowestBlockPower,
-                  uint32_t* score, bool* activeFalling, uint32_t currentId, Sound* soundEffects, uint32_t* currentSound) {
+                  uint32_t* score, bool* activeFalling, uint32_t currentId, Sound* soundEffects, uint32_t* currentSound,
+                  Color* colors) {
     for (int32_t i = mapWidth - 1; i > -1; i--) {
         for (int32_t j = mapHeight - 1; j > -1; j--) {
 
@@ -157,12 +161,28 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
                 if (j == mapHeight - 1) {
                     block->isFalling = false;
                     if (block->id == currentId) *activeFalling = false;
-
                 }
 
                 // Collision Downwards
                 if (j + 1 < mapHeight && blocks[i][j + 1].isActive) {
+                    // Merge
+                    if (block->value == blocks[i][j + 1].value) {
+                        blocks[i][j + 1].value *= 2;
 
+                        // Get Next Color Id
+                        blocks[i][j + 1].randId++;
+                        if (blocks[i][j + 1].randId >= powerRange) {
+                            blocks[i][j + 1].randId = 0;
+                        }
+
+                        if (blocks[i][j + 1].value == pow(2, highestPower + powersHigherThanHighestBlock)) {
+                            (*lowestBlockPower)++;
+                        }    
+
+                        blocks[i][j + 1].color = colors[blocks[i][j + 1].randId];
+                        *score += block->value;
+                        *block = (Block){0};
+                    }
                 }
 
                 // Collision Left
@@ -355,11 +375,41 @@ int main() {
     while (!WindowShouldClose()) {
 
         // Input 
-        if (IsKeyPressed(KEY_ENTER)) {
+        if (IsKeyPressed(KEY_SPACE)) {
             PlaySound(soundEffects[currentSound]);
             currentSound++;
             if (currentSound >= MAX_SOUNDS) {
                 currentSound = 0;
+            }
+        }
+        if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT)) {
+            for (int32_t i = 0; i < mapWidth; i++) {
+                for (int32_t j = 0; j < mapHeight; j++) {
+                    if (blocks[i][j].isActive && blocks[i][j].id == currentId && i - 1 > -1) {
+                        blocks[i - 1][j] = blocks[i][j];
+                        blocks[i][j] = (Block){0};
+                    }
+                }
+            }
+        }
+        if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)) {
+            for (int32_t i = mapWidth - 1; i > -1; i--) {
+                for (int32_t j = 0; j < mapHeight; j++) {
+                    if (blocks[i][j].isActive && blocks[i][j].id == currentId && i + 1 < mapWidth) {
+                        blocks[i + 1][j] = blocks[i][j];
+                        blocks[i][j] = (Block){0};
+                    }
+                }
+            }
+        }
+
+       if (IsKeyPressed(KEY_ENTER)) {
+            for (int32_t i = 0; i < mapWidth; i++) {
+                for (int32_t j = 0; j < mapHeight; j++) {
+                    if (blocks[i][j].isActive && blocks[i][j].id == currentId) {
+
+                    }
+                }
             }
         }
 
@@ -387,6 +437,7 @@ int main() {
                 .posY = 0.0f,
                 .interpolation = 0.0f,
                 .id = blockId++,
+                .randId = random,
                 .isFalling = false,
             };
             blocksQueue[currentQueueIndex] = block;
@@ -399,7 +450,7 @@ int main() {
         }
 
         updateBlocks(blocks, lowestBlockPower + powerRange - 1, &lowestBlockPower, &score,
-                     &activeFalling, currentId, soundEffects, &currentSound);
+                     &activeFalling, currentId, soundEffects, &currentSound, colors);
 
         // Render
         BeginDrawing();
