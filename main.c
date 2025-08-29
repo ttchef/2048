@@ -2,6 +2,9 @@
 #include <stdio.h> 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <time.h>
+#include <math.h>
 
 #include <raylib.h>
 
@@ -15,6 +18,7 @@ const uint32_t mapHeight = 10;
 const uint32_t mapPosX = 3;
 const uint32_t mapPosY = 2;
 const float blockSpeed = 0.2f;
+const uint32_t lowestBlockHighestPower = 4;
 
 typedef struct {
     uint32_t value;
@@ -60,6 +64,17 @@ void drawMap() {
 
 void drawBlock(Block* block) {
     DrawRectangle((block->posX + mapPosX) * GRIDSIZE, (block->posY + mapPosY) * GRIDSIZE, GRIDSIZE, GRIDSIZE, block->color);
+    const char* valueStr = TextFormat("%d", block->value);
+    uint32_t fontSize = 25;
+    int textWidth = 0;
+    do {
+        textWidth = MeasureText(valueStr, fontSize);
+        fontSize--;
+    } while (textWidth > GRIDSIZE);
+    fontSize++;
+
+    DrawText(TextFormat("%d", block->value), (block->posX + mapPosX) * GRIDSIZE + (float)GRIDSIZE / 2 - (float)textWidth / 2,
+                        (block->posY + mapPosY) * GRIDSIZE + (float)GRIDSIZE / 2 - (float)fontSize / 2, fontSize, RAYWHITE);
 }
 
 void drawBlocks(Block blocks[mapWidth][mapHeight]) {
@@ -94,6 +109,8 @@ void updateBlocks(Block blocks[mapWidth][mapHeight]) {
 }
 
 int main() {
+    
+    srand(time(NULL));
 
     InitWindow(screenWidht * GRIDSIZE, screenHeight * GRIDSIZE, "Mef 2048");
     SetTargetFPS(60);
@@ -106,6 +123,15 @@ int main() {
         }
     }
  
+    // 2 ^ lowestBlockPower == lowestBlockValue
+    uint32_t lowestBlockPower = 5;
+
+    Color colors[4] = {
+        (Color){255, 0, 0, 255},
+        (Color){0, 255, 0, 255},
+        (Color){0, 0, 255, 255},
+        (Color){120, 120, 120, 255},
+    };
 
     while (!WindowShouldClose()) {
 
@@ -126,9 +152,11 @@ int main() {
                 uint32_t mapIndexX = mapRelativeMousePos.x / GRIDSIZE;
                 uint32_t mapIndexY = mapRelativeMousePos.y / GRIDSIZE;
     
+                uint32_t random = rand() % lowestBlockHighestPower;
+
                 Block block = {
-                    .value = 100,
-                    .color = RAYWHITE,
+                    .value = pow(2, random + lowestBlockPower),
+                    .color = colors[random],
                     .isActive = true,
                     .posX = mapIndexX,
                     .posY = mapIndexY,
