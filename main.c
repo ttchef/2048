@@ -300,10 +300,20 @@ int main() {
     uint32_t score = 0;
     bool activeFalling = false;
 
-    // Image
+    // Bg
     Image bg = LoadImage("../game-2048/res/images/forest.png");
+    ImageColorBrightness(&bg, -5);
+    ImageBlurGaussian(&bg, 15);
     Texture2D texture = LoadTextureFromImage(bg);
     UnloadImage(bg);
+
+    // Shadow Image generation 
+    Image shadow = GenImageColor((mapWidth + 2) * GRIDSIZE, (mapHeight + 2) * GRIDSIZE, BLANK);
+    Color blackTransparant = (Color){0, 0, 0, 200};
+    ImageDrawRectangle(&shadow, GRIDSIZE, GRIDSIZE, mapWidth * GRIDSIZE, mapHeight * GRIDSIZE, blackTransparant);
+    ImageBlurGaussian(&shadow, 10);
+    Texture2D shadowTexture = LoadTextureFromImage(shadow);
+    UnloadImage(shadow);
 
     init(blocks, colors, blocksQueue, lowestBlockPower);
 
@@ -352,6 +362,7 @@ int main() {
         ClearBackground(BLACK);
 
         DrawTexture(texture, 0, 0, WHITE);
+        DrawTexture(shadowTexture, (mapPosX) * GRIDSIZE - 35, (mapPosY) * GRIDSIZE - 35, WHITE);
         drawMap();
         drawBlocks(blocks);
         drawUi(highestBlock, blocksQueue, currentQueueIndex, score);
