@@ -20,6 +20,7 @@ const uint32_t mapHeight = 10;
 const uint32_t mapPosX = 3;
 const uint32_t mapPosY = 2;
 const float blockSpeed = 0.05f;
+const float downDashSpeed = 0.5f;
 const uint32_t powerRange = 5;
 const uint32_t powersHigherThanHighestBlock = 3;
 const uint32_t timeTillNextBlock = 3; // In Seconds
@@ -30,6 +31,7 @@ typedef struct {
     bool isActive;
     bool isFalling;
     bool hasCollided;
+    bool downDash;
     float posX;
     float posY;
     float interpolation; // percent to next coordiante
@@ -70,6 +72,14 @@ Block* findBlockById(Block blocks[mapWidth][mapHeight], uint32_t id) {
     return NULL;
 }
 
+void playBoomSound(Sound* soundEffects, uint32_t* currentSound) {
+    PlaySound(soundEffects[*currentSound]);
+    (*currentSound)++;
+    if (*currentSound >= MAX_SOUNDS) {
+        *currentSound = 0;
+    }
+}
+
 void init(Block blocks[mapWidth][mapHeight], Color colors[powerRange], Block blocksQueue[2],
           uint32_t lowestBlockPower, Texture2D* bgTexture, Texture2D* shadowTexture, Sound* soundEffects) {
     // Zero initen
@@ -99,6 +109,7 @@ void init(Block blocks[mapWidth][mapHeight], Color colors[powerRange], Block blo
         .randId = random,
         .isFalling = false,
         .hasCollided = false,
+        .downDash = false,
     };
     blocksQueue[0] = block;
 
@@ -114,6 +125,7 @@ void init(Block blocks[mapWidth][mapHeight], Color colors[powerRange], Block blo
         .randId = random,
         .isFalling = false,
         .hasCollided = false,
+        .downDash = false,
     };
     blocksQueue[1] = block1;
     
@@ -165,6 +177,7 @@ void spwanBlock(Block* blocksQueue, Block blocks[mapWidth][mapHeight], uint32_t*
         .randId = random,
         .isFalling = false,
         .hasCollided = false,
+        .downDash = false,
     };
     blocksQueue[*currentQueueIndex] = block;
     toggleIndex(currentQueueIndex);
@@ -218,7 +231,8 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
             // Can Fall?
             if (j + 1 < mapHeight && !blocks[i][j + 1].isActive) {
                 block->isFalling = true;
-                block->interpolation += blockSpeed;
+                if (block->downDash) block->interpolation += downDashSpeed;
+                else block->interpolation += blockSpeed;
 
                 Vector2 pos = lerp((Vector2U32){i, j}, (Vector2U32){i, j + 1}, block->interpolation);
                 block->posX = pos.x;
@@ -245,12 +259,9 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
                 // First Collision 
                 if (!block->hasCollided) {
                     block->hasCollided = true;
+                    block->downDash = false;
                     spwanBlock(blocksQueue, blocks, currentQueueIndex, currentIdPtr, blockId, colors, *lowestBlockPower);
-                    PlaySound(soundEffects[*currentSound]);
-                    (*currentSound)++;
-                    if (*currentSound >= MAX_SOUNDS) {
-                        *currentSound = 0;
-                    }
+                    playBoomSound(soundEffects, currentSound);
                 }
 
                 // Collision Downwards
@@ -278,14 +289,20 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
 
                 // Collision Left
                 else if (i - 1 > -1 && blocks[i - 1][j].isActive) {
-                    Block* collisionBlock = &blocks[i - 1][j];
-                    mergeBlockLR(block, collisionBlock, lowestBlockPower, score, highestPower, colors);
+                    // Merge 
+                    if (block->value == blocks[i - 1][j].value) {
+                        Block* collisionBlock = &blocks[i - 1][j];
+                        mergeBlockLR(block, collisionBlock, lowestBlockPower, score, highestPower, colors);
+                    }
                 }
 
                 // Collision Right 
                 else if (i + 1 < mapWidth && blocks[i + 1][j].isActive) {
-                    Block* collisionBlock = &blocks[i + 1][j];
-                    mergeBlockLR(block, collisionBlock, lowestBlockPower, score, highestPower, colors);
+                    // Merge
+                    if (block->value == blocks[i + 1][j].value) {
+                        Block* collisionBlock = &blocks[i + 1][j];
+                        mergeBlockLR(block, collisionBlock, lowestBlockPower, score, highestPower, colors);
+                    }
                 }
             }
         }
@@ -422,7 +439,7 @@ int main() {
         if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT)) {
             for (int32_t i = 0; i < mapWidth; i++) {
                 for (int32_t j = 0; j < mapHeight; j++) {
-                    if (blocks[i][j].isActive && blocks[i][j].id == currentId && i - 1 > -1) {
+                    if (blocks[i][j].isActive && blocks[i][j].id == currentId && i - 1 > -1 && !blocks[i - 1][j].isActive) {
                         blocks[i - 1][j] = blocks[i][j];
                         blocks[i][j] = (Block){0};
                     }
@@ -433,7 +450,7 @@ int main() {
         if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)) {
             for (int32_t i = mapWidth - 1; i > -1; i--) {
                 for (int32_t j = 0; j < mapHeight; j++) {
-                    if (blocks[i][j].isActive && blocks[i][j].id == currentId && i + 1 < mapWidth) {
+                    if (blocks[i][j].isActive && blocks[i][j].id == currentId && i + 1 < mapWidth && !blocks[i + 1][j].isActive) {
                         blocks[i + 1][j] = blocks[i][j];
                         blocks[i][j] = (Block){0};
                     }
@@ -441,11 +458,11 @@ int main() {
             }
         }
 
-       if (IsKeyPressed(KEY_ENTER)) {
+       if (IsKeyPressed(KEY_S) || IsKeyPressed(KEY_ENTER)) {
             for (int32_t i = 0; i < mapWidth; i++) {
                 for (int32_t j = 0; j < mapHeight; j++) {
                     if (blocks[i][j].isActive && blocks[i][j].id == currentId) {
-
+                        blocks[i][j].downDash = true;
                     }
                 }
             }
