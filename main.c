@@ -294,16 +294,34 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
                         Block* collisionBlock = &blocks[i - 1][j];
                         if (block->isFalling) {
                             block->value *= 2;
+                            block->randId++;
+                            if (block->randId >= powerRange) block->randId = 0;
+                            if (block->value == pow(2, highestPower + powersHigherThanHighestBlock)) (*lowestBlockPower)++;
+
+                            block->color = colors[block->randId];
+                            *score += block->value;
                             
                             *collisionBlock = (Block){0};
                         }
                         else if (collisionBlock->isFalling) {
                             collisionBlock->value *= 2;
+                            collisionBlock->randId++;
+                            if (collisionBlock->randId >= powerRange) collisionBlock->randId = 0;
+                            if (collisionBlock->value == pow(2, highestPower + powersHigherThanHighestBlock)) (*lowestBlockPower)++;
+
+                            collisionBlock->color = colors[collisionBlock->randId];
+                            *score += collisionBlock->value;
 
                             *block = (Block){0};
                         }
                         else {
                             block->value *= 2;
+                            block->randId++;
+                            if (block->randId >= powerRange) block->randId = 0;
+                            if (block->value == pow(2, highestPower + powersHigherThanHighestBlock)) (*lowestBlockPower)++;
+
+                            block->color = colors[block->randId];
+                            *score += block->value;
                             
                             *collisionBlock = (Block){0};
 
@@ -319,15 +337,35 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
                         if (block->isFalling) {
                             block->value *= 2;
 
+                            block->randId++;
+                            if (block->randId >= powerRange) block->randId = 0;
+                            if (block->value == pow(2, highestPower + powersHigherThanHighestBlock)) (*lowestBlockPower)++;
+
+                            block->color = colors[block->randId];
+                            *score += block->value;
+
                             *collisionBlock = (Block){0};
                         }
                         else if (collisionBlock->isFalling) {
                             collisionBlock->value *= 2;
 
+                            collisionBlock->randId++;
+                            if (collisionBlock->randId >= powerRange) collisionBlock->randId = 0;
+                            if (collisionBlock->value == pow(2, highestPower + powersHigherThanHighestBlock)) (*lowestBlockPower)++;
+
+                            collisionBlock->color = colors[collisionBlock->randId];
+                            *score += collisionBlock->value;
+
                             *block = (Block){0};
                         }
                         else {
                             block->value *= 2;
+                            block->randId++;
+                            if (block->randId >= powerRange) block->randId = 0;
+                            if (block->value == pow(2, highestPower + powersHigherThanHighestBlock)) (*lowestBlockPower)++;
+
+                            block->color = colors[block->randId];
+                            *score += block->value;
                             
                             *collisionBlock = (Block){0};
 
@@ -358,10 +396,10 @@ void drawMap() {
 
 void drawBlock(Block* block) {
     Rectangle rect = {
-        .x = (block->posX + mapPosX) * GRIDSIZE,
-        .y = (block->posY + mapPosY) * GRIDSIZE,
-        .width = GRIDSIZE - 1,
-        .height = GRIDSIZE - 1,
+        .x = (block->posX + mapPosX) * GRIDSIZE + 3,
+        .y = (block->posY + mapPosY) * GRIDSIZE + 3,
+        .width = GRIDSIZE - 6,
+        .height = GRIDSIZE - 6,
     };
 
     DrawRectangleRounded(rect, 0.25f, 2, block->color);
