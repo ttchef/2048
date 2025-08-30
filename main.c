@@ -357,7 +357,15 @@ void drawMap() {
 }
 
 void drawBlock(Block* block) {
-    DrawRectangle((block->posX + mapPosX) * GRIDSIZE, (block->posY + mapPosY) * GRIDSIZE, GRIDSIZE, GRIDSIZE, block->color);
+    Rectangle rect = {
+        .x = (block->posX + mapPosX) * GRIDSIZE,
+        .y = (block->posY + mapPosY) * GRIDSIZE,
+        .width = GRIDSIZE - 1,
+        .height = GRIDSIZE - 1,
+    };
+
+    DrawRectangleRounded(rect, 0.25f, 2, block->color);
+
     char valueStr[100];
     snprintf(valueStr, sizeof(valueStr), "%d", block->value);
     uint32_t fontSize = 25;
