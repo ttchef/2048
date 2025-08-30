@@ -19,6 +19,9 @@ pub fn build(b: *std.Build) void {
         }).createModule(),
     });
     exe.linkLibrary(raylib.artifact("raylib"));
+    exe.root_module.linkSystemLibrary("GL", .{});
+    exe.root_module.linkSystemLibrary("X11", .{});
+    exe.root_module.linkSystemLibrary("wayland-client", .{});
 
     b.installArtifact(exe);
 

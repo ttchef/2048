@@ -1,2 +1,4 @@
 .zig-cache
 zig-out
+2048
+build
