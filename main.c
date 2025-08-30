@@ -139,6 +139,41 @@ void init(Block blocks[mapWidth][mapHeight], Color colors[powerRange], Block blo
 
 }
 
+void mergeBlockLR(Block* block, Block* collisionBlock, uint32_t* lowestBlockPower, uint32_t* score, uint32_t highestPower, Color* colors) {
+    
+    if (block->isFalling) {
+        block->value *= 2;
+        block->randId++;
+        if (block->randId >= powerRange) {
+            block->randId = 0;
+        }
+
+        if (block->value == pow(2, highestPower + powersHigherThanHighestBlock)) {
+            (*lowestBlockPower)++;
+        }
+
+        block->color = colors[block->randId];
+        *score += block->value;
+        *collisionBlock = (Block){0};
+
+    }
+    else if (collisionBlock->isFalling) {
+        collisionBlock->value *= 2;
+        collisionBlock->randId++;
+        if (collisionBlock->randId >= powerRange) {
+            collisionBlock->randId = 0;
+        }
+
+        if (collisionBlock->value == pow(2, highestPower + powersHigherThanHighestBlock)) {
+            (*lowestBlockPower)++;
+        };
+
+        collisionBlock->color = colors[collisionBlock->randId];
+        *score += collisionBlock->value;
+        *block = (Block){0};
+    }
+}
+
 void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint32_t* lowestBlockPower,
                   uint32_t* score, bool* activeFalling, uint32_t currentId, Sound* soundEffects, uint32_t* currentSound,
                   Color* colors) {
@@ -189,19 +224,20 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
                 if (j + 1 < mapHeight && blocks[i][j + 1].isActive) {
                     // Merge
                     if (block->value == blocks[i][j + 1].value) {
-                        blocks[i][j + 1].value *= 2;
+                        Block* collisionBlock = &blocks[i][j + 1];
+                        collisionBlock->value *= 2;
 
                         // Get Next Color Id
-                        blocks[i][j + 1].randId++;
-                        if (blocks[i][j + 1].randId >= powerRange) {
-                            blocks[i][j + 1].randId = 0;
+                        collisionBlock->randId++;
+                        if (collisionBlock->randId >= powerRange) {
+                            collisionBlock->randId = 0;
                         }
 
-                        if (blocks[i][j + 1].value == pow(2, highestPower + powersHigherThanHighestBlock)) {
+                        if (collisionBlock->value == pow(2, highestPower + powersHigherThanHighestBlock)) {
                             (*lowestBlockPower)++;
                         }    
 
-                        blocks[i][j + 1].color = colors[blocks[i][j + 1].randId];
+                        collisionBlock->color = colors[collisionBlock->randId];
                         *score += block->value;
                         *block = (Block){0};
                     }
@@ -209,12 +245,14 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
 
                 // Collision Left
                 else if (i - 1 > -1 && blocks[i - 1][j].isActive) {
-
+                    Block* collisionBlock = &blocks[i - 1][j];
+                    mergeBlockLR(block, collisionBlock, lowestBlockPower, score, highestPower, colors);
                 }
 
                 // Collision Right 
                 else if (i + 1 < mapWidth && blocks[i + 1][j].isActive) {
-   
+                    Block* collisionBlock = &blocks[i + 1][j];
+                    mergeBlockLR(block, collisionBlock, lowestBlockPower, score, highestPower, colors);
                 }
             }
         }
