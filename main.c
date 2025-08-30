@@ -208,7 +208,7 @@ void mergeBlockLR(Block* block, Block* collisionBlock, uint32_t* lowestBlockPowe
 
 void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint32_t* lowestBlockPower,
                   uint32_t* score, bool* activeFalling, uint32_t currentId, Sound* soundEffects, uint32_t* currentSound,
-                  Color* colors) {
+                  Color* colors, Block* blocksQueue, uint32_t* currentQueueIndex, uint32_t* blockId, uint32_t* currentIdPtr) {
     for (int32_t i = mapWidth - 1; i > -1; i--) {
         for (int32_t j = mapHeight - 1; j > -1; j--) {
 
@@ -245,6 +245,7 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
                 // First Collision 
                 if (!block->hasCollided) {
                     block->hasCollided = true;
+                    spwanBlock(blocksQueue, blocks, currentQueueIndex, currentIdPtr, blockId, colors, *lowestBlockPower);
                     PlaySound(soundEffects[*currentSound]);
                     (*currentSound)++;
                     if (*currentSound >= MAX_SOUNDS) {
@@ -405,6 +406,9 @@ int main() {
 
     init(blocks, colors, blocksQueue, lowestBlockPower, &bgTexture, &shadowTexture, soundEffects);
 
+    spwanBlock(blocksQueue, blocks, &currentQueueIndex, &currentId, &blockId, colors, lowestBlockPower);
+
+
     while (!WindowShouldClose()) {
 
         // Input 
@@ -449,7 +453,7 @@ int main() {
 
         if (!activeFalling) {
             activeFalling = true;
-            spwanBlock(blocksQueue, blocks, &currentQueueIndex, &currentId, &blockId, colors, lowestBlockPower);
+            //spwanBlock(blocksQueue, blocks, &currentQueueIndex, &currentId, &blockId, colors, lowestBlockPower);
                         
         }
     
@@ -458,7 +462,8 @@ int main() {
         }
 
         updateBlocks(blocks, lowestBlockPower + powerRange - 1, &lowestBlockPower, &score,
-                     &activeFalling, currentId, soundEffects, &currentSound, colors);
+                     &activeFalling, currentId, soundEffects, &currentSound, colors, 
+                     blocksQueue, &currentQueueIndex, &blockId, &currentId);
 
         // Render
         BeginDrawing();
