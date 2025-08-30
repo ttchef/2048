@@ -139,6 +139,38 @@ void init(Block blocks[mapWidth][mapHeight], Color colors[powerRange], Block blo
 
 }
 
+void spwanBlock(Block* blocksQueue, Block blocks[mapWidth][mapHeight], uint32_t* currentQueueIndex,
+                uint32_t* currentId, uint32_t* blockId, Color* colors, uint32_t lowestBlockPower) {
+    uint32_t mapIndexX = rand() % mapWidth;
+            
+    // set pos of queue block
+    blocksQueue[*currentQueueIndex].isActive = true;
+    blocksQueue[*currentQueueIndex].posX = mapIndexX;
+    blocksQueue[*currentQueueIndex].posY = 0;
+    blocksQueue[*currentQueueIndex].isFalling = true;
+    *currentId = blocksQueue[*currentQueueIndex].id;
+    blocks[mapIndexX][0] = blocksQueue[*currentQueueIndex];
+    
+    // Generate next queue block
+    uint32_t random = rand() % powerRange;
+
+    Block block = {
+        .value = pow(2, random + lowestBlockPower),
+        .color = colors[random],
+        .isActive = false,
+        .posX = 0.0f,
+        .posY = 0.0f,
+        .interpolation = 0.0f,
+        .id = (*blockId)++,
+        .randId = random,
+        .isFalling = false,
+        .hasCollided = false,
+    };
+    blocksQueue[*currentQueueIndex] = block;
+    toggleIndex(currentQueueIndex);
+
+}
+
 void mergeBlockLR(Block* block, Block* collisionBlock, uint32_t* lowestBlockPower, uint32_t* score, uint32_t highestPower, Color* colors) {
     
     if (block->isFalling) {
@@ -417,35 +449,8 @@ int main() {
 
         if (!activeFalling) {
             activeFalling = true;
-  
-            uint32_t mapIndexX = rand() % mapWidth;
-            
-            // set pos of queue block
-            blocksQueue[currentQueueIndex].isActive = true;
-            blocksQueue[currentQueueIndex].posX = mapIndexX;
-            blocksQueue[currentQueueIndex].posY = 0;
-            blocksQueue[currentQueueIndex].isFalling = true;
-            currentId = blocksQueue[currentQueueIndex].id;
-            blocks[mapIndexX][0] = blocksQueue[currentQueueIndex];
-    
-            // Generate next queue block
-            uint32_t random = rand() % powerRange;
-
-            Block block = {
-                .value = pow(2, random + lowestBlockPower),
-                .color = colors[random],
-                .isActive = false,
-                .posX = 0.0f,
-                .posY = 0.0f,
-                .interpolation = 0.0f,
-                .id = blockId++,
-                .randId = random,
-                .isFalling = false,
-                .hasCollided = false,
-            };
-            blocksQueue[currentQueueIndex] = block;
-            toggleIndex(&currentQueueIndex);
-            
+            spwanBlock(blocksQueue, blocks, &currentQueueIndex, &currentId, &blockId, colors, lowestBlockPower);
+                        
         }
     
         if (checkForLose(blocks)) {
