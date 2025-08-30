@@ -288,22 +288,54 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
                 }
 
                 // Collision Left
-                else if (i - 1 > -1 && blocks[i - 1][j].isActive) {
+                if (i - 1 > -1 && blocks[i - 1][j].isActive) {
                     // Merge 
                     if (block->value == blocks[i - 1][j].value) {
                         Block* collisionBlock = &blocks[i - 1][j];
-                        mergeBlockLR(block, collisionBlock, lowestBlockPower, score, highestPower, colors);
+                        if (block->isFalling) {
+                            block->value *= 2;
+                            
+                            *collisionBlock = (Block){0};
+                        }
+                        else if (collisionBlock->isFalling) {
+                            collisionBlock->value *= 2;
+
+                            *block = (Block){0};
+                        }
+                        else {
+                            block->value *= 2;
+                            
+                            *collisionBlock = (Block){0};
+
+                        }
                     }
                 }
 
                 // Collision Right 
-                else if (i + 1 < mapWidth && blocks[i + 1][j].isActive) {
+                if (i + 1 < mapWidth && blocks[i + 1][j].isActive) {
                     // Merge
                     if (block->value == blocks[i + 1][j].value) {
                         Block* collisionBlock = &blocks[i + 1][j];
-                        mergeBlockLR(block, collisionBlock, lowestBlockPower, score, highestPower, colors);
+                        if (block->isFalling) {
+                            block->value *= 2;
+
+                            *collisionBlock = (Block){0};
+                        }
+                        else if (collisionBlock->isFalling) {
+                            collisionBlock->value *= 2;
+
+                            *block = (Block){0};
+                        }
+                        else {
+                            block->value *= 2;
+                            
+                            *collisionBlock = (Block){0};
+
+                        }
                     }
                 }
+
+                block->isFalling = false;
             }
         }
     }
@@ -382,6 +414,37 @@ void drawUi(uint32_t highestBlock, Block blocksQueue[2], uint32_t queueIndex, ui
     DrawText(scoreText, 10, 60, 35, RAYWHITE);
 }
 
+void handleInput(Block blocks[mapWidth][mapHeight], uint32_t currentId) {
+
+    for (int32_t i = 0; i < mapWidth; i++) {
+        for (int32_t j = 0; j < mapHeight; j++) {
+            if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT)) {
+                if (blocks[i][j].isActive && blocks[i][j].id == currentId && i - 1 > -1 && !blocks[i - 1][j].isActive) {
+                    blocks[i - 1][j] = blocks[i][j];
+                    blocks[i][j] = (Block){0};
+                    i--;
+                }
+            }
+
+            if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)) {
+                if (blocks[i][j].isActive && blocks[i][j].id == currentId && i + 1 < mapWidth && !blocks[i + 1][j].isActive) {
+                    blocks[i + 1][j] = blocks[i][j];
+                    blocks[i][j] = (Block){0};
+                    i++;
+                }
+            }
+
+            if (IsKeyPressed(KEY_S) || IsKeyPressed(KEY_ENTER)) {
+                if (blocks[i][j].isActive && blocks[i][j].id == currentId) {
+                    blocks[i][j].downDash = true;
+
+                }
+            }
+        }
+    }
+
+ }
+
 bool checkForLose(Block blocks[mapWidth][mapHeight]) {
     for (uint32_t i = 0; i < mapWidth; i++) {
         if (blocks[i][0].isActive && !blocks[i][0].isFalling) return true;
@@ -436,37 +499,9 @@ int main() {
                 currentSound = 0;
             }
         }
-        if (IsKeyPressed(KEY_A) || IsKeyPressed(KEY_LEFT)) {
-            for (int32_t i = 0; i < mapWidth; i++) {
-                for (int32_t j = 0; j < mapHeight; j++) {
-                    if (blocks[i][j].isActive && blocks[i][j].id == currentId && i - 1 > -1 && !blocks[i - 1][j].isActive) {
-                        blocks[i - 1][j] = blocks[i][j];
-                        blocks[i][j] = (Block){0};
-                    }
-                }
-            }
-        }
 
-        if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)) {
-            for (int32_t i = mapWidth - 1; i > -1; i--) {
-                for (int32_t j = 0; j < mapHeight; j++) {
-                    if (blocks[i][j].isActive && blocks[i][j].id == currentId && i + 1 < mapWidth && !blocks[i + 1][j].isActive) {
-                        blocks[i + 1][j] = blocks[i][j];
-                        blocks[i][j] = (Block){0};
-                    }
-                }
-            }
-        }
+        handleInput(blocks, currentId);
 
-       if (IsKeyPressed(KEY_S) || IsKeyPressed(KEY_ENTER)) {
-            for (int32_t i = 0; i < mapWidth; i++) {
-                for (int32_t j = 0; j < mapHeight; j++) {
-                    if (blocks[i][j].isActive && blocks[i][j].id == currentId) {
-                        blocks[i][j].downDash = true;
-                    }
-                }
-            }
-        }
 
         if (!activeFalling) {
             activeFalling = true;
