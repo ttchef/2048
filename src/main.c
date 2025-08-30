@@ -7,7 +7,7 @@
 #include <math.h>
 #include <string.h>
 
-#include <raylib.h>
+#include "raylib.h"
 
 const uint32_t MAX_SOUNDS = 10;
 const uint32_t GRIDSIZE = 64; // Pixesl
@@ -499,8 +499,7 @@ bool checkForLose(Block blocks[mapWidth][mapHeight]) {
     return false;
 }
 
-int main() {
-    
+int main(int argc, char **argv) {
     srand(time(NULL));
 
     InitWindow(screenWidht * GRIDSIZE, screenHeight * GRIDSIZE, "Mef 2048");

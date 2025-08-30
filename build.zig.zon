@@ -1,0 +1,19 @@
+.{
+    .name = ._2048,
+    .version = "0.0.1",
+    .dependencies = .{
+        .raylib = .{
+            .url = "git+https://github.com/raysan5/raylib#bbf884d7b3068089d007ccc9a9eac0e7ea59af2b",
+            .hash = "raylib-5.5.0-whq8uLxNxwSGbI-mjcBlWs2dw91UP-fIYLLLxIeFBMu5",
+        },
+    },
+    .minimum_zig_version = "0.16.0-dev.13+1594c8055",
+    .dependecies = .{},
+    .paths = .{
+        "src",
+        "build.zig.zon",
+        "build.zig",
+        "README.md",
+    },
+    .fingerprint = 0x910031d4ea8cf041,
+}

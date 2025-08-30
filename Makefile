@@ -1,27 +1,27 @@
-
 CC = gcc
 CFLAGS = -Wall -Werror -g
-LDFLAGS = -lraylib -lm
+LDFLAGS = -lraylib -lGL -lm -lpthread -lX11 -lXrandr -lXi -lXcursor -lXinerama -lwayland-client -lXext -lEGL # These flags are for Raylib
+TARGET = 2048
 
-CFILES = $(wildcard *.c)
-OFILES = $(CFILES:.c=.o)
-TARGET = main
+SRCS = src/main.c
+OBJS = $(patsubst src/%.c, build/%.o, $(SRCS))
 
-all: run
-	
+all: $(TARGET)
 
-%.o: %.c
-	$(CC) -c $< -o $@ $(CFLAGS)
+build:
+	@mkdir -p build
 
-$(TARGET): $(OFILES)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+build/%.o: src/%.c | build
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(TARGET): $(OBJS)
+	$(CC) $(CFLAGS) -o $@ $(OBJS) $(LDFLAGS)
 
 run: $(TARGET)
 	./$(TARGET)
 
+clean:
+	rm -rf build $(TARGET)
+
 cloc:
 	cloc . --exclude-dir=vendor,build,third_party
-
-clean:
-	rm -rf $(TARGET) $(OFILES)
-
