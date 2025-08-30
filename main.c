@@ -29,6 +29,7 @@ typedef struct {
     Color color;
     bool isActive;
     bool isFalling;
+    bool hasCollided;
     float posX;
     float posY;
     float interpolation; // percent to next coordiante
@@ -60,6 +61,15 @@ void toggleIndex(uint32_t* index) {
     else *index = 0;
 }
 
+Block* findBlockById(Block blocks[mapWidth][mapHeight], uint32_t id) {
+    for (uint32_t i = 0; i < mapWidth; i++) {
+        for (uint32_t j = 0; j < mapHeight; j++) {
+            if (blocks[i][j].id == id) return &blocks[i][j];
+        }
+    }
+    return NULL;
+}
+
 void init(Block blocks[mapWidth][mapHeight], Color colors[powerRange], Block blocksQueue[2],
           uint32_t lowestBlockPower, Texture2D* bgTexture, Texture2D* shadowTexture, Sound* soundEffects) {
     // Zero initen
@@ -88,6 +98,7 @@ void init(Block blocks[mapWidth][mapHeight], Color colors[powerRange], Block blo
         .id = random,
         .randId = random,
         .isFalling = false,
+        .hasCollided = false,
     };
     blocksQueue[0] = block;
 
@@ -102,6 +113,7 @@ void init(Block blocks[mapWidth][mapHeight], Color colors[powerRange], Block blo
         .id = random,
         .randId = random,
         .isFalling = false,
+        .hasCollided = false,
     };
     blocksQueue[1] = block1;
     
@@ -163,6 +175,16 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
                     if (block->id == currentId) *activeFalling = false;
                 }
 
+                // First Collision 
+                if (!block->hasCollided) {
+                    block->hasCollided = true;
+                    PlaySound(soundEffects[*currentSound]);
+                    (*currentSound)++;
+                    if (*currentSound >= MAX_SOUNDS) {
+                        *currentSound = 0;
+                    }
+                }
+
                 // Collision Downwards
                 if (j + 1 < mapHeight && blocks[i][j + 1].isActive) {
                     // Merge
@@ -194,65 +216,6 @@ void updateBlocks(Block blocks[mapWidth][mapHeight], uint32_t highestPower, uint
                 else if (i + 1 < mapWidth && blocks[i + 1][j].isActive) {
    
                 }
-
-            }
-
-
-            if (true) {}
-            // Mergen with block down
-            else if (blocks[i][j].isActive && j + 1 < mapHeight && blocks[i][j + 1].isActive) {
-                if (blocks[i][j].value == blocks[i][j + 1].value) {
-                    blocks[i][j + 1].value *= 2;
-                    *score += blocks[i][j].value;
-                    if (blocks[i][j + 1].value == pow(2, highestPower + powersHigherThanHighestBlock)) {
-                        (*lowestBlockPower)++;
-                    }
-                    blocks[i][j] = (Block){0};
-                }
-                blocks[i][j].isFalling = false;
-                *activeFalling = false;
-            }
-            // Mergen with block left
-            else if (blocks[i][j].isActive && i >= 0 && blocks[i - 1][j].isActive) {
-                if (blocks[i][j].value == blocks[i - 1][j].value) {
-                    *score += blocks[i][j].value;
-                    
-                    // See which block is falling
-                    if (blocks[i][j].isFalling) {
-                        blocks[i][j].value *= 2;
-                        blocks[i - 1][j] = (Block){0};
-                    }
-                    else if (blocks[i - 1][j].isFalling) {
-                        blocks[i - 1][j].value *= 2;
-                        blocks[i][j] = (Block){0};
-                    }
-                    if (blocks[i][j].value == pow(2, highestPower + powersHigherThanHighestBlock)) {
-                        (*lowestBlockPower)++;
-                    }
-                }
-            }
-            // Mergen with block right
-            else if (blocks[i][j].isActive && i + 1 < mapWidth && blocks[i + 1][j].isActive) {
-                if (blocks[i][j].value == blocks[i + 1][j].value) {
-                    *score += blocks[i][j].value;
-
-                    // See which block is falling
-                    if (blocks[i][j].isFalling) {
-                        blocks[i][j].value *= 2;
-                        blocks[i + 1][j] = (Block){0};
-                    }
-                    else if (blocks[i + 1][j].isFalling) {
-                        blocks[i + 1][j].value *= 2;
-                        blocks[i][j] = (Block){0};
-                    }
-                    if (blocks[i][j].value == pow(2, highestPower + powersHigherThanHighestBlock)) {
-                        (*lowestBlockPower)++;
-                    }
-                }
-            }
-            else if (blocks[i][j].isActive && j == mapHeight - 1) {
-                blocks[i][j].isFalling = false;
-                *activeFalling = false;
             }
         }
     }
@@ -392,6 +355,7 @@ int main() {
                 }
             }
         }
+
         if (IsKeyPressed(KEY_D) || IsKeyPressed(KEY_RIGHT)) {
             for (int32_t i = mapWidth - 1; i > -1; i--) {
                 for (int32_t j = 0; j < mapHeight; j++) {
@@ -439,6 +403,7 @@ int main() {
                 .id = blockId++,
                 .randId = random,
                 .isFalling = false,
+                .hasCollided = false,
             };
             blocksQueue[currentQueueIndex] = block;
             toggleIndex(&currentQueueIndex);
