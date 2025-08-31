@@ -58,6 +58,10 @@ Vector2 lerp(Vector2U32 p1, Vector2U32 p2, float t) {
     return addVector2(a, b);
 }
 
+KeyboardKey numToKeyboardKey(uint32_t num) {
+    return num + 48;
+}
+
 void toggleIndex(uint32_t* index) {
     if (*index == 0) *index = 1;
     else *index = 0;
@@ -486,10 +490,24 @@ void handleInput(Block blocks[mapWidth][mapHeight], uint32_t currentId) {
 
                 }
             }
+
+            // Number for fast switching
+            for (int32_t k = 0; k < mapWidth; k++) {
+                if (IsKeyPressed(numToKeyboardKey(k + 1))) {
+                    if (blocks[i][j].isActive && blocks[i][j].id == currentId) {
+                        blocks[i][j].downDash = true;
+
+                        if (!blocks[k][j].isActive) {
+                            blocks[k][j] = blocks[i][j];
+                            blocks[i][j] = (Block){0};
+
+                        }
+                    }
+                }
+            }
         }
     }
-
- }
+}
 
 bool checkForLose(Block blocks[mapWidth][mapHeight]) {
     for (uint32_t i = 0; i < mapWidth; i++) {
@@ -532,7 +550,6 @@ int main(int argc, char **argv) {
     init(blocks, colors, blocksQueue, lowestBlockPower, &bgTexture, &shadowTexture, soundEffects);
 
     spwanBlock(blocksQueue, blocks, &currentQueueIndex, &currentId, &blockId, colors, lowestBlockPower);
-
 
     while (!WindowShouldClose()) {
 
