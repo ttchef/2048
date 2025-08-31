@@ -2,3 +2,5 @@
 zig-out
 2048
 build
+main
+*.o
