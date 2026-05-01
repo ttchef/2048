@@ -3,11 +3,11 @@
     .version = "0.0.1",
     .dependencies = .{
         .raylib = .{
-            .url = "git+https://github.com/raysan5/raylib#bbf884d7b3068089d007ccc9a9eac0e7ea59af2b",
-            .hash = "raylib-5.5.0-whq8uLxNxwSGbI-mjcBlWs2dw91UP-fIYLLLxIeFBMu5",
+            .url = "git+https://github.com/raysan5/raylib#d768dae402c8fad503aebd24dc17c38dbfa0b1e3",
+            .hash = "raylib-6.0.0-whq8uJVfLwW4plV2pYMGo8Y8fzd7XFl5Qw2VF05quO8J",
         },
     },
-    .minimum_zig_version = "0.16.0-dev.13+1594c8055",
+    .minimum_zig_version = "0.16.0",
     .dependecies = .{},
     .paths = .{
         "src",

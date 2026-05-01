@@ -11,14 +11,16 @@ pub fn build(b: *std.Build) void {
 
     const exe = b.addExecutable(.{
         .name = "2048",
-        .root_module = b.addTranslateC(.{
-            .root_source_file = b.path("src/main.c"),
+        .root_module = b.createModule(.{
             .target = target,
             .optimize = optimize,
             .link_libc = true,
-        }).createModule(),
+        }),
     });
-    exe.linkLibrary(raylib.artifact("raylib"));
+    exe.root_module.addCSourceFile(.{ .file = b.path("src/main.c") });
+    exe.root_module.addIncludePath(raylib.path("src/"));
+    exe.root_module.addIncludePath(b.path("src/"));
+    exe.root_module.linkLibrary(raylib.artifact("raylib"));
     exe.root_module.linkSystemLibrary("GL", .{});
     exe.root_module.linkSystemLibrary("X11", .{});
     exe.root_module.linkSystemLibrary("wayland-client", .{});
